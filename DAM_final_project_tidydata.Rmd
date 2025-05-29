@@ -1,0 +1,157 @@
+---
+title: "final project"
+author: "Lars Hesel & Josefine Dresler"
+date: "2025-05-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tidytext)
+library(readr)
+library(stringr)
+```
+
+#KONSERVATIV FOLKEPARTI
+```{r}
+load_and_tokenize <- function(filepath, year) {
+  text <- read_file(filepath, locale = locale(encoding = "UTF-8"))
+  
+  tibble(text = text) %>%
+    unnest_tokens(bigram, text, token = "ngrams", n = 2) %>%
+    separate(bigram, into = c("word1", "word2"), sep = " ") %>%
+    mutate(across(c(word1, word2), str_to_lower)) %>%
+    filter(str_detect(word1, "^[a-zæøå]+$"),
+           str_detect(word2, "^[a-zæøå]+$")) %>%
+    unite("bigram", word1, word2, sep = " ") %>%
+    mutate(year = year)
+}
+
+# Tilpas stier
+df_1980 <- load_and_tokenize("/Users/user/Desktop/Historie AU/2. Semester/Digitale_arkiver_metoder/Rstudio/data_DAMprojekt/tidy_data/konservative_1980.txt", 1980)
+df_1981 <- load_and_tokenize("/Users/user/Desktop/Historie AU/2. Semester/Digitale_arkiver_metoder/Rstudio/data_DAMprojekt/tidy_data/konservative_1981.txt", 1981)
+
+bigrams_all <- bind_rows(df_1980, df_1981)
+```
+
+```{r}
+# Ordlister for hvert tema
+tema_ord <- list(
+  Økonomi = c("økonomi", "økonomisk", "økonomiske", "vækst", "finans", "budget"),
+  Arbejdsmarked = c("arbejde", "arbejdsmarked", "arbejdsplads", "arbejdspladser", "job", "beskæftigelse", "arbejdsløshed", "dagpenge"),
+  Miljø = c("miljø", "energi", "klima", "bæredygtig", "ressourcer", "forurening", "natur"),
+  Velfærd = c("velfærd", "sundhed", "sygehus", "hospital", "pleje", "børn", "ældre", "familie", "omsorg"),
+  Uddannelse = c("uddannelse", "skole", "universitet", "studie", "læring", "elever", "undervisning"),
+  Skat = c("skat", "skatter", "beskatning", "skattepolitik", "skattelettelser"),
+  Forsvar = c("forsvar", "militær", "hæren", "soldater", "nato", "sikkerhedspolitik"),
+  Europa = c("europa", "eu", "fællesskab", "europæisk", "europæiske"),
+  Retspolitik = c("ret", "domstol", "kriminalitet", "politi", "strafferet", "retsvæsen", "retfærdighed"),
+  Indvandring = c("indvandring", "indvandrere", "flygtning", "asyl", "migrant", "integration")
+)
+
+# Funktion der tildeler tema
+find_tema <- function(bigram, tema_ord) {
+  for (tema in names(tema_ord)) {
+    if (any(str_detect(bigram, paste(tema_ord[[tema]], collapse = "|")))) {
+      return(tema)
+    }
+  }
+  return(NA)
+}
+
+# Tilføj tema
+bigrams_tema <- bigrams_all %>%
+  mutate(tema = map_chr(bigram, ~ find_tema(.x, tema_ord))) %>%
+  filter(!is.na(tema))
+```
+
+```{r}
+# Tæl antal bigrams per tema og år
+tema_tæl <- bigrams_tema %>%
+  count(tema, year)
+
+# Plot
+ggplot(tema_tæl, aes(x = n, y = fct_rev(paste(tema, "(", year, ")")), fill = factor(year))) +
+  geom_col(show.legend = FALSE) +
+  labs(
+    title = "Tematiske bigrams: Konservative 1980 og 1981",
+    x = "Forekomster", y = "Tema (år)"
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+```{r}
+ggsave("konservative_temaoversigt_1980_1981.pdf", width = 8, height = 6)
+```
+
+
+#SOCIALDEMOKRATERNE
+```{r}
+load_and_tokenize <- function(filepath, year) {
+  text <- read_file(filepath, locale = locale(encoding = "UTF-8"))
+  
+  tibble(text = text) %>%
+    unnest_tokens(bigram, text, token = "ngrams", n = 2) %>%
+    separate(bigram, into = c("word1", "word2"), sep = " ") %>%
+    mutate(across(c(word1, word2), str_to_lower)) %>%
+    filter(str_detect(word1, "^[a-zæøå]+$"),
+           str_detect(word2, "^[a-zæøå]+$")) %>%
+    unite("bigram", word1, word2, sep = " ") %>%
+    mutate(year = year)
+}
+
+df_1979 <- load_and_tokenize("/Users/user/Desktop/Historie AU/2. Semester/Digitale_arkiver_metoder/Rstudio/data_DAMprojekt/tidy_data/socialdemokratiet_1979.txt", 1979)
+df_1981 <- load_and_tokenize("/Users/user/Desktop/Historie AU/2. Semester/Digitale_arkiver_metoder/Rstudio/data_DAMprojekt/tidy_data/socialdemokratiet_1981.txt", 1981)
+
+bigrams_all <- bind_rows(df_1979, df_1981)
+```
+
+```{r}
+tema_ord <- list(
+  Økonomi = c("økonomi", "økonomisk", "økonomiske", "vækst", "finans", "budget"),
+  Arbejdsmarked = c("arbejde", "arbejdsmarked", "arbejdsplads", "arbejdspladser", "job", "beskæftigelse", "arbejdsløshed", "dagpenge"),
+  Miljø = c("miljø", "energi", "klima", "bæredygtig", "ressourcer", "forurening", "natur"),
+  Velfærd = c("velfærd", "sundhed", "sygehus", "hospital", "pleje", "børn", "ældre", "familie", "omsorg"),
+  Uddannelse = c("uddannelse", "skole", "universitet", "studie", "læring", "elever", "undervisning"),
+  Skat = c("skat", "skatter", "beskatning", "skattepolitik", "skattelettelser"),
+  Forsvar = c("forsvar", "militær", "hæren", "soldater", "nato", "sikkerhedspolitik"),
+  Europa = c("europa", "eu", "fællesskab", "europæisk", "europæiske"),
+  Retspolitik = c("ret", "domstol", "kriminalitet", "politi", "strafferet", "retsvæsen", "retfærdighed"),
+  Indvandring = c("indvandring", "indvandrere", "flygtning", "asyl", "migrant", "integration")
+)
+
+find_tema <- function(bigram, tema_ord) {
+  for (tema in names(tema_ord)) {
+    if (any(str_detect(bigram, paste(tema_ord[[tema]], collapse = "|")))) {
+      return(tema)
+    }
+  }
+  return(NA)
+}
+
+bigrams_tema <- bigrams_all %>%
+  mutate(tema = map_chr(bigram, ~ find_tema(.x, tema_ord))) %>%
+  filter(!is.na(tema))
+```
+
+```{r}
+# Tæl antal bigrams per tema og år
+tema_tæl <- bigrams_tema %>%
+  count(tema, year)
+
+# Plot
+ggplot(tema_tæl, aes(x = n, y = fct_rev(paste(tema, "(", year, ")")), fill = factor(year))) +
+  geom_col(show.legend = FALSE) +
+  labs(
+    title = "Tematiske bigrams: Socialdemokratiet 1979 og 1981",
+    x = "Forekomster", y = "Tema (år)"
+  ) +
+  theme_minimal(base_size = 13)
+```
+```{r}
+ggsave("socialdemokratiet_temaoversigt_1979_1981.pdf", width = 8, height = 6)
+```
